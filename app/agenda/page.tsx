@@ -142,6 +142,7 @@ export default function Agenda() {
               </div>
               <div className="appt-meta">
                 <EstadoBadge estado={c.estado} />
+                {(c as any).fuente === 'telegram' && <span style={{ background: '#E8F4FD', color: '#0369A1', borderRadius: 5, padding: '2px 7px', fontSize: 11, fontWeight: 600 }}>Telegram</span>}
                 {isAction ? (
                   <>
                     <button className="btn btn-success btn-sm" onClick={() => { setCompletando(c); setTiempoReal(String(c.duracion)) }}>

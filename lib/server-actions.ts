@@ -138,6 +138,7 @@ export async function getCitas(fecha?: string) {
     precio: parseFloat(c.servicios?.precio_base || '0'),
     estado: c.estado === 'en_proceso' ? 'en-proceso' : (c.estado || 'pendiente'),
     tiempoReal: c.hora_fin_real && c.hora_inicio ? minDiff(c.hora_inicio, c.hora_fin_real) : null,
+    fuente: c.fuente || 'crm',
   }))
 }
 

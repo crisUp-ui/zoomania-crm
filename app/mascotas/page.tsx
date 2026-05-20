@@ -8,12 +8,13 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Icons } from '@/components/Icons'
 import { useToast } from '@/components/Toast'
 
+const ESPECIES = ['Perro', 'Gato', 'Conejo', 'Ave', 'Iguana', 'Reptil', 'Hámster', 'Hurón', 'Pez', 'Otro']
 const TAMAÑOS = ['Pequeño', 'Mediano', 'Grande']
 const PELOS = ['Corto', 'Medio', 'Largo', 'Rizado']
 const PELAJES = ['Excelente', 'Bueno', 'Regular', 'Enmarañado']
 const TEMPERAMENTOS = ['Tranquilo', 'Nervioso', 'Agresivo', 'Juguetón', 'Tímido']
 
-const EMPTY = { nombre: '', cliente_id: '', raza: '', edad_años: '', peso_kg: '', tamaño: 'Mediano', tipo_pelo: 'Corto', estado_pelaje: 'Bueno', temperamento: 'Tranquilo', notas_especiales: '' }
+const EMPTY = { nombre: '', especie: 'Perro', cliente_id: '', raza: '', edad_años: '', peso_kg: '', tamaño: 'Mediano', tipo_pelo: 'Corto', estado_pelaje: 'Bueno', temperamento: 'Tranquilo', notas_especiales: '' }
 
 export default function Mascotas() {
   const { mascotas, loading, refresh } = useMascotas()
@@ -35,7 +36,7 @@ export default function Mascotas() {
   const guardar = async () => {
     setSaving(true)
     const data = {
-      nombre: form.nombre, cliente_id: form.cliente_id,
+      nombre: form.nombre, especie: form.especie, cliente_id: form.cliente_id,
       raza: form.raza, edad_años: Number(form.edad_años) || null,
       peso_kg: Number(form.peso_kg) || null, tamaño: form.tamaño,
       tipo_pelo: form.tipo_pelo, estado_pelaje: form.estado_pelaje,
@@ -58,7 +59,7 @@ export default function Mascotas() {
 
   const openEdit = (m: any) => {
     setForm({
-      nombre: m.nombre, cliente_id: m.dueñoId, raza: m.raza,
+      nombre: m.nombre, especie: m.especie || 'Perro', cliente_id: m.dueñoId, raza: m.raza,
       edad_años: m.edad, peso_kg: m.peso, tamaño: m.tamaño,
       tipo_pelo: m.tipoPelo, estado_pelaje: m.estadoPelaje,
       temperamento: m.temperamento, notas_especiales: m.notas,
@@ -93,7 +94,7 @@ export default function Mascotas() {
             {loading && <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: 'var(--zm-text-3)' }}>Cargando…</td></tr>}
             {filtered.map(m => (
               <tr key={m.id} onClick={() => setSelected(m)}>
-                <td><b>🐾 {m.nombre}</b></td>
+                <td><b>{m.nombre}</b> <span className="badge badge-gray" style={{ marginLeft: 4 }}>{m.especie || 'Perro'}</span></td>
                 <td>{m.dueño}</td>
                 <td style={{ color: 'var(--zm-text-2)' }}>{m.raza}</td>
                 <td><span className="badge badge-gray">{m.tamaño}</span></td>
@@ -133,6 +134,11 @@ export default function Mascotas() {
           </>}>
           <div className="field-row">
             <div className="field"><label>Nombre</label><input value={form.nombre} onChange={F('nombre')} placeholder="Ej: Rocky" /></div>
+            <div className="field"><label>Especie</label>
+              <select value={form.especie} onChange={F('especie')}>{ESPECIES.map(e => <option key={e}>{e}</option>)}</select>
+            </div>
+          </div>
+          <div className="field-row">
             <div className="field"><label>Dueño</label>
               <select value={form.cliente_id} onChange={F('cliente_id')}>
                 <option value="">Seleccionar cliente…</option>

@@ -62,6 +62,7 @@ export async function getMascotas(clienteId?: string) {
   return (data || []).map((m: any) => ({
     id: m.id,
     nombre: m.nombre,
+    especie: m.especie || 'Perro',
     dueñoId: m.cliente_id,
     dueño: m.clientes ? `${m.clientes.nombre} ${m.clientes.apellido}` : '',
     raza: m.raza || '',

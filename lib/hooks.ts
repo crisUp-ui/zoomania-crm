@@ -5,7 +5,7 @@ import {
   getHistorial, getFacturas, getProductos,
 } from './server-actions'
 
-function usePoll<T>(fn: () => Promise<T[]>, deps: any[] = [], interval = 30000) {
+function usePoll<T = any>(fn: () => Promise<T[]>, deps: any[] = [], interval = 30000) {
   const [data, setData] = useState<T[]>([])
   const [loading, setLoading] = useState(true)
 

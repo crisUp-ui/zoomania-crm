@@ -8,6 +8,16 @@ import {
 import { Icons } from './Icons'
 import { useToast } from './Toast'
 
+const TAMAÑO_COLOR: Record<string, [string, string]> = {
+  'Pequeño': ['#DBEAFE', '#1E3A8A'],
+  'Mediano': ['#FEF3C7', '#92400E'],
+  'Grande':  ['#FEE2E2', '#991B1B'],
+}
+const tamañoBadge = (t: string) => {
+  const [bg, color] = TAMAÑO_COLOR[t] || ['#F2F3F4', '#4D5656']
+  return { background: bg, color, borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }
+}
+
 const ESPECIES = ['Perro', 'Gato', 'Conejo', 'Ave', 'Iguana', 'Reptil', 'Hámster', 'Hurón', 'Pez', 'Otro']
 const TAMAÑOS = ['Pequeño', 'Mediano', 'Grande']
 const TEMPERAMENTOS = ['Tranquilo', 'Nervioso', 'Agresivo', 'Juguetón', 'Tímido']
@@ -228,7 +238,7 @@ export default function HistoriaPanel({ clienteId, onClose }: Props) {
                           </div>
                         ) : (
                           <div className="hp-pet-details">
-                            {m.tamaño && <span className="hp-tag">Tamaño: {m.tamaño}</span>}
+                            {m.tamaño && <span style={tamañoBadge(m.tamaño)}>Tamaño: {m.tamaño}</span>}
                             {m.peso_kg && <span className="hp-tag">Peso: {m.peso_kg} kg</span>}
                             {m.temperamento && <span className="hp-tag">Temperamento: {m.temperamento}</span>}
                             {m.tipo_pelo && <span className="hp-tag">Pelo: {m.tipo_pelo}</span>}

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useCitas, useClientes, useMascotas, useServicios } from '@/lib/hooks'
-import { completarCita, createCita, cancelarCita } from '@/lib/server-actions'
+import { completarCita, createCita, cancelarCita, createCliente } from '@/lib/server-actions'
 import { Modal } from '@/components/Modal'
 import { EstadoBadge } from '@/components/EstadoBadge'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -20,11 +20,13 @@ export default function Agenda() {
   const [showNueva, setShowNueva] = useState(false)
   const [cancelId, setCancelId] = useState<string | null>(null)
 
-  const { clientes } = useClientes()
+  const { clientes, refresh: refreshClientes } = useClientes()
   const { servicios } = useServicios()
   const EMPTY = { clienteId: '', mascotaId: '', servicioId: '', fecha, horaInicio: '09:00' }
   const [form, setForm] = useState(EMPTY)
-  const { mascotas } = useMascotas(form.clienteId || undefined)
+  const { mascotas } = useMascotas(form.clienteId && form.clienteId !== '__new__' ? form.clienteId : undefined)
+  const [newClientForm, setNewClientForm] = useState({ nombre: '', apellido: '', telefono: '', email: '' })
+  const [savingNewClient, setSavingNewClient] = useState(false)
 
   const total = citas.length
   const completadas = citas.filter(c => c.estado === 'completada').length
@@ -46,9 +48,23 @@ export default function Agenda() {
     toast('Cita cancelada'); setCancelId(null); refresh()
   }
 
+  const crearNuevoCliente = async () => {
+    if (!newClientForm.nombre || !newClientForm.apellido || !newClientForm.telefono) {
+      toast('Nombre, apellido y teléfono son obligatorios', 'error'); return
+    }
+    setSavingNewClient(true)
+    const { error, id } = await createCliente(newClientForm)
+    setSavingNewClient(false)
+    if (error) { toast(error, 'error'); return }
+    toast('Cliente creado')
+    refreshClientes()
+    setNewClientForm({ nombre: '', apellido: '', telefono: '', email: '' })
+    setForm(f => ({...f, clienteId: id!, mascotaId: ''}))
+  }
+
   const guardarNueva = async () => {
-    if (!form.clienteId || !form.mascotaId || !form.servicioId) {
-      toast('Completa todos los campos', 'error'); return
+    if (!form.clienteId || form.clienteId === '__new__' || !form.mascotaId || !form.servicioId) {
+      toast(form.clienteId === '__new__' ? 'Primero crea el cliente' : 'Completa todos los campos', 'error'); return
     }
     const svc = (servicios as any[]).find(s => s.id === form.servicioId)
     const dur = svc?.tiempo_base_minutos || 60
@@ -152,9 +168,26 @@ export default function Agenda() {
           <div className="field"><label>Cliente</label>
             <select value={form.clienteId} onChange={e => setForm(f => ({...f, clienteId: e.target.value, mascotaId: ''}))}>
               <option value="">Seleccionar cliente…</option>
+              <option value="__new__">＋ Nuevo cliente…</option>
               {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
           </div>
+          {form.clienteId === '__new__' && (
+            <div style={{ background: 'var(--zm-primary-bg)', border: '1px solid var(--zm-primary-light)', borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--zm-primary-dark)', marginBottom: 10 }}>Datos del nuevo cliente</div>
+              <div className="field-row">
+                <div className="field" style={{ marginBottom: 8 }}><label>Nombre *</label><input value={newClientForm.nombre} onChange={e => setNewClientForm(f => ({...f, nombre: e.target.value}))} placeholder="Ej: Ana" /></div>
+                <div className="field" style={{ marginBottom: 8 }}><label>Apellido *</label><input value={newClientForm.apellido} onChange={e => setNewClientForm(f => ({...f, apellido: e.target.value}))} placeholder="Ej: García" /></div>
+              </div>
+              <div className="field-row">
+                <div className="field" style={{ marginBottom: 8 }}><label>Teléfono *</label><input value={newClientForm.telefono} onChange={e => setNewClientForm(f => ({...f, telefono: e.target.value}))} placeholder="+51 999 888 777" /></div>
+                <div className="field" style={{ marginBottom: 8 }}><label>Email</label><input type="email" value={newClientForm.email} onChange={e => setNewClientForm(f => ({...f, email: e.target.value}))} placeholder="cliente@gmail.com" /></div>
+              </div>
+              <button className="btn btn-primary btn-sm" onClick={crearNuevoCliente} disabled={savingNewClient}>
+                <Icons.check size={13} /> {savingNewClient ? 'Creando…' : 'Crear cliente y continuar'}
+              </button>
+            </div>
+          )}
           <div className="field"><label>Mascota</label>
             <select value={form.mascotaId} onChange={e => setForm(f => ({...f, mascotaId: e.target.value}))} disabled={!form.clienteId}>
               <option value="">Seleccionar mascota…</option>

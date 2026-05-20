@@ -36,8 +36,8 @@ export async function getClientes() {
 }
 
 export async function createCliente(data: { nombre: string; apellido: string; telefono: string; email?: string; direccion?: string; notas?: string }) {
-  const { error } = await admin().from('clientes').insert(data)
-  return { error: error?.message }
+  const { data: created, error } = await admin().from('clientes').insert(data).select('id').single()
+  return { error: error?.message, id: created?.id as string | undefined }
 }
 
 export async function updateCliente(id: string, data: { nombre: string; apellido: string; telefono: string; email?: string; direccion?: string; notas?: string }) {

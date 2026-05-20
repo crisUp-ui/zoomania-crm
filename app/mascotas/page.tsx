@@ -9,6 +9,16 @@ import { Icons } from '@/components/Icons'
 import { useToast } from '@/components/Toast'
 import HistoriaPanel from '@/components/HistoriaPanel'
 
+const TAMAÑO_COLOR: Record<string, [string, string]> = {
+  'Pequeño': ['#DBEAFE', '#1E3A8A'],
+  'Mediano': ['#FEF3C7', '#92400E'],
+  'Grande':  ['#FEE2E2', '#991B1B'],
+}
+const tamañoBadge = (t: string) => {
+  const [bg, color] = TAMAÑO_COLOR[t] || ['#F2F3F4', '#4D5656']
+  return { background: bg, color, borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }
+}
+
 const ESPECIE_COLOR: Record<string, [string, string]> = {
   'Perro':   ['#E8F4D9','#3D6614'],
   'Gato':    ['#FDEBD0','#784A15'],
@@ -116,7 +126,7 @@ export default function Mascotas() {
                 <td><b>{m.nombre}</b> <span style={{ marginLeft: 4, ...especieBadge(m.especie || 'Perro') }}>{m.especie || 'Perro'}</span></td>
                 <td>{m.dueño}</td>
                 <td style={{ color: 'var(--zm-text-2)' }}>{m.raza}</td>
-                <td><span className="badge badge-gray">{m.tamaño}</span></td>
+                <td><span style={tamañoBadge(m.tamaño)}>{m.tamaño}</span></td>
                 <td style={{ color: 'var(--zm-text-2)' }}>{m.ultimaVisita}</td>
               </tr>
             ))}
@@ -132,7 +142,7 @@ export default function Mascotas() {
           <div className="sp-grid">
             <div><div className="sp-label">Dueño</div><div className="sp-value">{selected.dueño}</div></div>
             <div><div className="sp-label">Peso</div><div className="sp-value">{selected.peso} kg</div></div>
-            <div><div className="sp-label">Tamaño</div><div className="sp-value">{selected.tamaño}</div></div>
+            <div><div className="sp-label">Tamaño</div><div className="sp-value"><span style={tamañoBadge(selected.tamaño)}>{selected.tamaño}</span></div></div>
             <div><div className="sp-label">Tipo de pelo</div><div className="sp-value">{selected.tipoPelo}</div></div>
             <div><div className="sp-label">Estado pelaje</div><div className="sp-value">{selected.estadoPelaje}</div></div>
             <div><div className="sp-label">Temperamento</div><div className="sp-value">{selected.temperamento}</div></div>

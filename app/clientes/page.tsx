@@ -111,7 +111,7 @@ export default function Clientes() {
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{m.nombre}</div>
                 <div style={{ fontSize: 12.5, color: 'var(--zm-text-2)' }}>{m.raza} · {m.tamaño} · {m.peso} kg</div>
               </div>
-              <button className="btn btn-sm btn-ghost" onClick={() => { setMascotaIdHp(m.id); setSelected(null) }} title="Historia clínica">
+              <button className="btn btn-sm btn-primary" onClick={() => { setMascotaIdHp(m.id); setSelected(null) }} title="Historia clínica">
                 <Icons.paw size={13} /> Historia
               </button>
             </div>

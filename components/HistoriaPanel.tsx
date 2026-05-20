@@ -39,7 +39,7 @@ interface Props { mascotaId: string; onClose: () => void }
 export default function HistoriaPanel({ mascotaId, onClose }: Props) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [exp, setExp] = useState({ info: true, historial: false, citas: true, alertas: true })
+  const [exp, setExp] = useState({ info: true, historial: false, citas: true, alertas: true, alergias: true })
   const [editando, setEditando] = useState(false)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
@@ -236,28 +236,59 @@ export default function HistoriaPanel({ mascotaId, onClose }: Props) {
             </div>
 
             {/* E: ALERTAS MÉDICAS */}
-            <div className="hp-section">
-              <button className="hp-section-head" onClick={() => toggle('alertas')}>
-                <span>Alertas médicas</span>
-                {data.alertas.length > 0 && <span className="hp-alert-badge">{data.alertas.length}</span>}
-                <Chevron open={exp.alertas} />
-              </button>
-              {exp.alertas && (
-                <div className="hp-section-body">
-                  {data.alertas.length === 0 && <div className="hp-empty">Sin alertas activas</div>}
-                  {data.alertas.map((a: any) => (
-                    <div key={a.id} className={`hp-alerta hp-alerta-${a.urgencia}`}>
-                      <div>
-                        <div className="hp-alerta-desc">{a.descripcion}</div>
-                        {a.fecha_vencimiento && <div className="hp-alerta-meta">vence {a.fecha_vencimiento}</div>}
+            {(() => {
+              const alertasMed = data.alertas.filter((a: any) => a.tipo !== 'alergia')
+              const alergias = data.alertas.filter((a: any) => a.tipo === 'alergia')
+              return (
+                <>
+                  <div className="hp-section">
+                    <button className="hp-section-head" onClick={() => toggle('alertas')}>
+                      <span>Alertas médicas</span>
+                      {alertasMed.length > 0 && <span className="hp-alert-badge">{alertasMed.length}</span>}
+                      <Chevron open={exp.alertas} />
+                    </button>
+                    {exp.alertas && (
+                      <div className="hp-section-body">
+                        {alertasMed.length === 0 && <div className="hp-empty">Sin alertas activas</div>}
+                        {alertasMed.map((a: any) => (
+                          <div key={a.id} className={`hp-alerta hp-alerta-${a.urgencia}`}>
+                            <div>
+                              <div className="hp-alerta-desc">{a.descripcion}</div>
+                              {a.fecha_vencimiento && <div className="hp-alerta-meta">vence {a.fecha_vencimiento}</div>}
+                            </div>
+                            <button className="hp-alerta-del" onClick={() => eliminarAlerta(a.id)}><Icons.close size={12} /></button>
+                          </div>
+                        ))}
+                        <AddAlertaForm mascotaId={mascotaId} onAdd={load} excludeAlergia />
                       </div>
-                      <button className="hp-alerta-del" onClick={() => eliminarAlerta(a.id)}><Icons.close size={12} /></button>
-                    </div>
-                  ))}
-                  <AddAlertaForm mascotaId={mascotaId} onAdd={load} />
-                </div>
-              )}
-            </div>
+                    )}
+                  </div>
+
+                  {/* F: ALERGIAS */}
+                  <div className="hp-section">
+                    <button className="hp-section-head" onClick={() => toggle('alergias')}>
+                      <span>Alergias</span>
+                      {alergias.length > 0 && <span className="hp-alert-badge" style={{ background: '#FEE2E2', color: '#991B1B' }}>{alergias.length}</span>}
+                      <Chevron open={exp.alergias} />
+                    </button>
+                    {exp.alergias && (
+                      <div className="hp-section-body">
+                        {alergias.length === 0 && <div className="hp-empty">Sin alergias registradas</div>}
+                        {alergias.map((a: any) => (
+                          <div key={a.id} className="hp-alerta hp-alerta-alta">
+                            <div>
+                              <div className="hp-alerta-desc">{a.descripcion}</div>
+                            </div>
+                            <button className="hp-alerta-del" onClick={() => eliminarAlerta(a.id)}><Icons.close size={12} /></button>
+                          </div>
+                        ))}
+                        <AddAlertaForm mascotaId={mascotaId} onAdd={load} onlyAlergia />
+                      </div>
+                    )}
+                  </div>
+                </>
+              )
+            })()}
 
           </div>
         )}
@@ -266,9 +297,10 @@ export default function HistoriaPanel({ mascotaId, onClose }: Props) {
   )
 }
 
-function AddAlertaForm({ mascotaId, onAdd }: { mascotaId: string; onAdd: () => void }) {
+function AddAlertaForm({ mascotaId, onAdd, excludeAlergia, onlyAlergia }: { mascotaId: string; onAdd: () => void; excludeAlergia?: boolean; onlyAlergia?: boolean }) {
+  const defaultTipo = onlyAlergia ? 'alergia' : 'vacuna'
   const [show, setShow] = useState(false)
-  const [form, setForm] = useState({ tipo: 'vacuna', descripcion: '', fecha_vencimiento: '' })
+  const [form, setForm] = useState({ tipo: defaultTipo, descripcion: '', fecha_vencimiento: '' })
   const [saving, setSaving] = useState(false)
   const toast = useToast()
 
@@ -280,26 +312,28 @@ function AddAlertaForm({ mascotaId, onAdd }: { mascotaId: string; onAdd: () => v
     const { error } = await createAlerta(payload)
     setSaving(false)
     if (error) { toast(error, 'error'); return }
-    toast('Alerta creada')
-    setShow(false); setForm({ tipo: 'vacuna', descripcion: '', fecha_vencimiento: '' }); onAdd()
+    toast(onlyAlergia ? 'Alergia registrada' : 'Alerta creada')
+    setShow(false); setForm({ tipo: defaultTipo, descripcion: '', fecha_vencimiento: '' }); onAdd()
   }
 
   if (!show) return (
     <button className="btn btn-sm btn-ghost" style={{ marginTop: 8, width: '100%' }} onClick={() => setShow(true)}>
-      <Icons.plus size={12} /> Agregar alerta
+      <Icons.plus size={12} /> {onlyAlergia ? 'Agregar alergia' : 'Agregar alerta'}
     </button>
   )
 
   return (
     <div className="hp-form" style={{ marginTop: 8 }}>
-      <select value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}>
-        <option value="vacuna">Vacuna</option>
-        <option value="alergia">Alergia</option>
-        <option value="comportamiento">Comportamiento</option>
-        <option value="otro">Otro</option>
-      </select>
+      {!onlyAlergia && (
+        <select value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}>
+          <option value="vacuna">Vacuna</option>
+          {!excludeAlergia && <option value="alergia">Alergia</option>}
+          <option value="comportamiento">Comportamiento</option>
+          <option value="otro">Otro</option>
+        </select>
+      )}
       <input placeholder="Descripción…" value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} />
-      <input type="date" value={form.fecha_vencimiento} onChange={e => setForm(f => ({ ...f, fecha_vencimiento: e.target.value }))} title="Fecha vencimiento (opcional)" />
+      {!onlyAlergia && <input type="date" value={form.fecha_vencimiento} onChange={e => setForm(f => ({ ...f, fecha_vencimiento: e.target.value }))} title="Fecha vencimiento (opcional)" />}
       <div style={{ display: 'flex', gap: 6 }}>
         <button className="btn btn-sm btn-primary" onClick={guardar} disabled={saving}>{saving ? 'Guardando…' : 'Guardar'}</button>
         <button className="btn btn-sm btn-ghost" onClick={() => setShow(false)}>Cancelar</button>

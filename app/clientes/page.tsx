@@ -23,7 +23,7 @@ export default function Clientes() {
   const [saving, setSaving] = useState(false)
 
   const { mascotas: mascotasPanel } = useMascotas(selected?.id)
-  const [historiaId, setHistoriaId] = useState<string | null>(null)
+  const [mascotaIdHp, setMascotaIdHp] = useState<string | null>(null)
 
   const filtered = clientes.filter(c => {
     const q = query.toLowerCase()
@@ -111,15 +111,11 @@ export default function Clientes() {
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{m.nombre}</div>
                 <div style={{ fontSize: 12.5, color: 'var(--zm-text-2)' }}>{m.raza} · {m.tamaño} · {m.peso} kg</div>
               </div>
-              <span className="badge badge-gray">{m.edad} años</span>
+              <button className="btn btn-sm btn-ghost" onClick={() => { setMascotaIdHp(m.id); setSelected(null) }} title="Historia clínica">
+                <Icons.paw size={13} /> Historia
+              </button>
             </div>
           ))}
-
-          <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-            <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => { setHistoriaId(selected.id); setSelected(null) }}>
-              <Icons.paw size={14} /> Historia clínica
-            </button>
-          </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <button className="btn" style={{ flex: 1 }} onClick={() => openEdit(selected)}>
               <Icons.edit size={14} /> Editar
@@ -151,7 +147,7 @@ export default function Clientes() {
       )}
 
       {deleteId && <ConfirmDialog onConfirm={confirmarDelete} onCancel={() => setDeleteId(null)} />}
-      {historiaId && <HistoriaPanel clienteId={historiaId} onClose={() => setHistoriaId(null)} />}
+      {mascotaIdHp && <HistoriaPanel mascotaId={mascotaIdHp} onClose={() => setMascotaIdHp(null)} />}
     </>
   )
 }

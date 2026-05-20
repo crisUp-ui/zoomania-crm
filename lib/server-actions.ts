@@ -78,8 +78,8 @@ export async function getMascotas(clienteId?: string) {
 }
 
 export async function createMascota(data: any) {
-  const { error } = await admin().from('mascotas').insert(data)
-  return { error: error?.message }
+  const { data: created, error } = await admin().from('mascotas').insert(data).select('id').single()
+  return { error: error?.message, id: created?.id as string | undefined }
 }
 
 export async function updateMascota(id: string, data: any) {
@@ -104,10 +104,18 @@ export async function getServicios() {
 export async function getCitas(fecha?: string) {
   let q = admin()
     .from('citas')
-    .select('*, clientes(id,nombre,apellido,telefono), mascotas(id,nombre,raza,tamaño), servicios(id,nombre,precio_base,tiempo_base_minutos)')
+    .select('*, clientes(id,nombre,apellido,telefono), mascotas(id,nombre,raza,tamaño,especie), servicios(id,nombre,precio_base,tiempo_base_minutos)')
     .order('hora_inicio')
   if (fecha) q = (q as any).eq('fecha', fecha)
   const { data } = await (q as any)
+  const mascotaIds = [...new Set((data || []).map((c: any) => c.mascota_id))] as string[]
+  let primerasVisitas = new Set<string>()
+  if (mascotaIds.length > 0) {
+    const db2 = admin()
+    const { data: prev } = await db2.from('citas').select('mascota_id').in('mascota_id', mascotaIds).eq('estado', 'completada')
+    const visited = new Set((prev || []).map((c: any) => c.mascota_id))
+    mascotaIds.forEach(id => { if (!visited.has(id)) primerasVisitas.add(id) })
+  }
   return (data || []).map((c: any) => ({
     id: c.id,
     hora: (c.hora_inicio || '').substring(0, 5),
@@ -122,6 +130,8 @@ export async function getCitas(fecha?: string) {
     mascotaNombre: c.mascotas?.nombre || '',
     mascotaRaza: c.mascotas?.raza || '',
     mascotaTamaño: c.mascotas?.tamaño || '',
+    mascotaEspecie: c.mascotas?.especie || 'Perro',
+    esPrimeraVisita: primerasVisitas.has(c.mascota_id),
     servicioId: c.servicio_id,
     servicio: c.servicios?.nombre || '',
     duracion: c.tiempo_calculado_minutos || c.servicios?.tiempo_base_minutos || 0,
@@ -177,6 +187,7 @@ export async function getHistorial() {
       real,
       diferencia: real - estimado,
       precio: parseFloat(c.servicios?.precio_base || '0'),
+      mes: (c.fecha as string).substring(0, 7),
     }
   })
 }
@@ -358,4 +369,49 @@ export async function createAlerta(data: { mascota_id: string; tipo: string; des
 export async function deleteAlerta(id: string) {
   const { error } = await admin().from('alertas_medicas').delete().eq('id', id)
   return { error: error?.message }
+}
+
+export async function getHistoriaClinicaMascota(mascotaId: string) {
+  const db = admin()
+  const today = new Date().toISOString().split('T')[0]
+  const now = new Date()
+  const [{ data: m }, { data: historial }, { data: proximas }, { data: alertas }] = await Promise.all([
+    db.from('mascotas').select('*, clientes(id,nombre,apellido,telefono,email)').eq('id', mascotaId).single(),
+    db.from('citas').select('*, servicios(nombre,tiempo_base_minutos)').eq('mascota_id', mascotaId).eq('estado', 'completada').order('fecha', { ascending: false }).limit(20),
+    db.from('citas').select('*, servicios(nombre)').eq('mascota_id', mascotaId).gte('fecha', today).not('estado', 'eq', 'cancelada').order('fecha').order('hora_inicio').limit(5),
+    db.from('alertas_medicas').select('*').eq('mascota_id', mascotaId).order('created_at', { ascending: false }),
+  ])
+  return {
+    mascota: m ? {
+      id: (m as any).id, nombre: (m as any).nombre,
+      especie: (m as any).especie || 'Perro', raza: (m as any).raza || '',
+      edad_años: (m as any).edad_años, peso_kg: (m as any).peso_kg,
+      tamaño: (m as any).tamaño || '', temperamento: (m as any).temperamento || '',
+      tipo_pelo: (m as any).tipo_pelo || '', estado_pelaje: (m as any).estado_pelaje || '',
+      notas_especiales: (m as any).notas_especiales || '',
+      cliente: (m as any).clientes ? {
+        id: (m as any).clientes.id,
+        nombre: `${(m as any).clientes.nombre} ${(m as any).clientes.apellido}`,
+        telefono: (m as any).clientes.telefono || '',
+        email: (m as any).clientes.email || '',
+      } : null,
+    } : null,
+    historial: (historial || []).map((h: any) => {
+      const estimado = h.tiempo_calculado_minutos || h.servicios?.tiempo_base_minutos || 0
+      const real = h.hora_fin_real && h.hora_inicio ? minDiff(h.hora_inicio, h.hora_fin_real) : estimado
+      return { id: h.id, fecha: new Date(h.fecha).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' }), servicio: h.servicios?.nombre || '—', diferencia: real - estimado }
+    }),
+    proximasCitas: (proximas || []).map((p: any) => ({
+      id: p.id, fecha: new Date(p.fecha).toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' }),
+      hora: (p.hora_inicio || '').substring(0, 5), servicio: p.servicios?.nombre || '—',
+    })),
+    alertas: (alertas || []).map((a: any) => {
+      const daysUntil = a.fecha_vencimiento ? Math.floor((new Date(a.fecha_vencimiento).getTime() - now.getTime()) / 86400000) : null
+      return {
+        id: a.id, descripcion: a.descripcion, tipo: a.tipo,
+        fecha_vencimiento: a.fecha_vencimiento ? new Date(a.fecha_vencimiento).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' }) : null,
+        urgencia: daysUntil !== null ? (daysUntil < 0 ? 'vencida' : daysUntil <= 7 ? 'alta' : daysUntil <= 30 ? 'media' : 'baja') : 'baja',
+      }
+    }),
+  }
 }

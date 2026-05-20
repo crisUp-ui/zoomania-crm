@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useHistorial } from '@/lib/hooks'
 import { Icons } from '@/components/Icons'
 
@@ -24,6 +24,52 @@ export default function Historial() {
   const svcCount: Record<string, number> = {}
   filtered.forEach(h => { svcCount[h.servicio] = (svcCount[h.servicio] || 0) + 1 })
   const topSvc = Object.entries(svcCount).sort((a, b) => b[1] - a[1])[0]?.[0] || '—'
+
+  const chartRef = useRef<HTMLCanvasElement>(null)
+  const monthlyData = useMemo(() => {
+    const map: Record<string, { count: number; ingresos: number }> = {}
+    historial.forEach((h: any) => {
+      const mes = h.mes || ''
+      if (!mes) return
+      if (!map[mes]) map[mes] = { count: 0, ingresos: 0 }
+      map[mes].count++
+      map[mes].ingresos += h.precio || 0
+    })
+    const sorted = Object.entries(map).sort(([a], [b]) => a.localeCompare(b)).slice(-6)
+    return {
+      labels: sorted.map(([m]) => { const [y, mo] = m.split('-'); return new Date(Number(y), Number(mo) - 1).toLocaleDateString('es-PE', { month: 'short', year: '2-digit' }) }),
+      counts: sorted.map(([, v]) => v.count),
+      ingresos: sorted.map(([, v]) => Math.round(v.ingresos)),
+    }
+  }, [historial])
+
+  useEffect(() => {
+    if (!chartRef.current) return
+    let chart: any
+    import('chart.js/auto').then(({ default: Chart }) => {
+      if (!chartRef.current) return
+      chart = new Chart(chartRef.current.getContext('2d')!, {
+        type: 'bar',
+        data: {
+          labels: monthlyData.labels,
+          datasets: [
+            { label: 'Servicios', data: monthlyData.counts, backgroundColor: '#97C459', borderRadius: 5, yAxisID: 'y' },
+            { label: 'Ingresos (S/.)', data: monthlyData.ingresos, backgroundColor: '#4A90D9', borderRadius: 5, yAxisID: 'y1' },
+          ],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'top', labels: { font: { size: 11 }, color: '#8B948A' } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#8B948A', font: { size: 11 } } },
+            y: { grid: { color: '#EEF1EA' }, ticks: { color: '#8B948A', font: { size: 11 }, stepSize: 1 }, beginAtZero: true, position: 'left' },
+            y1: { grid: { display: false }, ticks: { color: '#4A90D9', font: { size: 11 } }, beginAtZero: true, position: 'right' },
+          },
+        },
+      })
+    })
+    return () => chart?.destroy()
+  }, [monthlyData])
 
   return (
     <>
@@ -79,6 +125,16 @@ export default function Historial() {
           {svcCount[topSvc] && <div className="metric-delta">{svcCount[topSvc]} veces</div>}
         </div>
       </div>
+
+      {historial.length > 0 && (
+        <div className="card card-pad" style={{ marginBottom: 20 }}>
+          <div className="section-title">
+            <span>Tendencia mensual</span>
+            <span className="muted">Últimos 6 meses</span>
+          </div>
+          <div className="chart-wrap"><canvas ref={chartRef} /></div>
+        </div>
+      )}
 
       <div className="card tbl-card">
         <table className="tbl">

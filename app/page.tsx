@@ -51,12 +51,14 @@ export default function Dashboard() {
   }, [citas])
 
   const todayStr = new Date().toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches'
 
   return (
     <>
       <div className="page-head">
         <div>
-          <h1 className="page-title">Buenas tardes, Rosa</h1>
+          <h1 className="page-title">{greeting}, Ana</h1>
           <div className="page-sub">{todayStr} · Resumen del día</div>
         </div>
         <div className="page-actions">

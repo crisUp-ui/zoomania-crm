@@ -117,7 +117,7 @@ export default function Mascotas() {
       <div className="card tbl-card">
         <table className="tbl">
           <thead>
-            <tr><th>Nombre</th><th>Dueño</th><th>Raza</th><th>Tamaño</th><th>Última visita</th></tr>
+            <tr><th>Nombre</th><th>Dueño</th><th>Raza</th><th>Tamaño</th><th>Última visita</th><th></th></tr>
           </thead>
           <tbody>
             {loading && <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: 'var(--zm-text-3)' }}>Cargando…</td></tr>}
@@ -128,6 +128,11 @@ export default function Mascotas() {
                 <td style={{ color: 'var(--zm-text-2)' }}>{m.raza}</td>
                 <td><span style={tamañoBadge(m.tamaño)}>{m.tamaño}</span></td>
                 <td style={{ color: 'var(--zm-text-2)' }}>{m.ultimaVisita}</td>
+                <td onClick={e => e.stopPropagation()}>
+                  <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px' }} onClick={() => setHistoriaId(m.id)} title="Historia clínica">
+                    <Icons.paw size={13} />
+                  </button>
+                </td>
               </tr>
             ))}
             {!loading && filtered.length === 0 && (
@@ -149,7 +154,7 @@ export default function Mascotas() {
             {selected.notas && <div style={{ gridColumn: '1/-1' }}><div className="sp-label">Notas</div><div className="sp-value">{selected.notas}</div></div>}
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-            <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => { setHistoriaId(selected.dueñoId); setSelected(null) }}><Icons.paw size={14} /> Historia clínica</button>
+            <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => { setHistoriaId(selected.id); setSelected(null) }}><Icons.paw size={14} /> Historia clínica</button>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <button className="btn" style={{ flex: 1 }} onClick={() => openEdit(selected)}><Icons.edit size={14} /> Editar</button>

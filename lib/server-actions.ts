@@ -241,3 +241,118 @@ export async function ajustarStock(id: string, nuevoStock: number) {
   const { error } = await admin().from('productos').update({ stock_actual: nuevoStock }).eq('id', id)
   return { error: error?.message }
 }
+
+// ── HISTORIA CLÍNICA ──────────────────────────────────────────────────────────
+
+export async function searchClientes(query: string) {
+  if (!query || query.length < 2) return []
+  const db = admin()
+  const { data: byClient } = await db
+    .from('clientes')
+    .select('id, nombre, apellido, telefono, mascotas(id, nombre)')
+    .or(`nombre.ilike.%${query}%,apellido.ilike.%${query}%,telefono.ilike.%${query}%`)
+    .limit(6)
+  const { data: byPet } = await db
+    .from('mascotas')
+    .select('cliente_id, nombre, clientes(id, nombre, apellido, telefono, mascotas(id, nombre))')
+    .ilike('nombre', `%${query}%`)
+    .limit(4)
+  const seen = new Set<string>()
+  const results: any[] = []
+  for (const c of (byClient || [])) {
+    if (!seen.has(c.id)) {
+      seen.add(c.id)
+      results.push({ id: c.id, nombre: `${c.nombre} ${c.apellido}`, telefono: c.telefono || '', mascotas: (c as any).mascotas || [] })
+    }
+  }
+  for (const m of (byPet || [])) {
+    const c = (m as any).clientes
+    if (c && !seen.has(c.id)) {
+      seen.add(c.id)
+      results.push({ id: c.id, nombre: `${c.nombre} ${c.apellido}`, telefono: c.telefono || '', mascotas: c.mascotas || [] })
+    }
+  }
+  return results.slice(0, 8)
+}
+
+export async function getHistoriaClinica(clienteId: string) {
+  const db = admin()
+  const today = new Date().toISOString().split('T')[0]
+  const [{ data: c }, { data: mascotas }, { data: historial }, { data: proximas }] = await Promise.all([
+    db.from('clientes').select('*').eq('id', clienteId).single(),
+    db.from('mascotas').select('*').eq('cliente_id', clienteId).order('nombre'),
+    db.from('citas')
+      .select('*, mascotas(nombre), servicios(nombre, tiempo_base_minutos)')
+      .eq('cliente_id', clienteId).eq('estado', 'completada')
+      .order('fecha', { ascending: false }).limit(10),
+    db.from('citas')
+      .select('*, mascotas(nombre), servicios(nombre)')
+      .eq('cliente_id', clienteId).gte('fecha', today)
+      .not('estado', 'eq', 'cancelada')
+      .order('fecha').order('hora_inicio').limit(5),
+  ])
+  const mascotaIds = (mascotas || []).map((m: any) => m.id)
+  let alertas: any[] = []
+  if (mascotaIds.length > 0) {
+    const { data } = await db.from('alertas_medicas').select('*, mascotas(nombre)').in('mascota_id', mascotaIds).order('created_at', { ascending: false })
+    alertas = data || []
+  }
+  const now = new Date()
+  return {
+    cliente: c ? {
+      id: (c as any).id, nombre: `${(c as any).nombre} ${(c as any).apellido}`,
+      _nombre: (c as any).nombre, _apellido: (c as any).apellido,
+      telefono: (c as any).telefono || '', email: (c as any).email || '',
+      direccion: (c as any).direccion || '', notas: (c as any).notas || '',
+    } : null,
+    mascotas: mascotas || [],
+    historial: (historial || []).map((h: any) => {
+      const estimado = h.tiempo_calculado_minutos || h.servicios?.tiempo_base_minutos || 0
+      const real = h.hora_fin_real && h.hora_inicio ? minDiff(h.hora_inicio, h.hora_fin_real) : estimado
+      return {
+        id: h.id,
+        fecha: new Date(h.fecha).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' }),
+        servicio: h.servicios?.nombre || '—',
+        mascota: h.mascotas?.nombre || '—',
+        diferencia: real - estimado,
+      }
+    }),
+    proximasCitas: (proximas || []).map((p: any) => ({
+      id: p.id,
+      fecha: new Date(p.fecha).toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' }),
+      hora: (p.hora_inicio || '').substring(0, 5),
+      servicio: p.servicios?.nombre || '—',
+      mascota: p.mascotas?.nombre || '—',
+    })),
+    alertas: alertas.map((a: any) => {
+      const daysUntil = a.fecha_vencimiento
+        ? Math.floor((new Date(a.fecha_vencimiento).getTime() - now.getTime()) / 86400000)
+        : null
+      return {
+        id: a.id,
+        descripcion: a.descripcion,
+        tipo: a.tipo,
+        mascota_nombre: a.mascotas?.nombre || '',
+        fecha_vencimiento: a.fecha_vencimiento
+          ? new Date(a.fecha_vencimiento).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })
+          : null,
+        urgencia: (daysUntil !== null && daysUntil <= 30) || a.tipo === 'alergia' ? 'alta' : 'media',
+      }
+    }),
+  }
+}
+
+export async function updateClienteNotas(id: string, notas: string) {
+  const { error } = await admin().from('clientes').update({ notas }).eq('id', id)
+  return { error: error?.message }
+}
+
+export async function createAlerta(data: { mascota_id: string; tipo: string; descripcion: string; fecha_vencimiento?: string }) {
+  const { error } = await admin().from('alertas_medicas').insert(data)
+  return { error: error?.message }
+}
+
+export async function deleteAlerta(id: string) {
+  const { error } = await admin().from('alertas_medicas').delete().eq('id', id)
+  return { error: error?.message }
+}

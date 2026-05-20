@@ -30,4 +30,6 @@ export const Icons = {
   trash:     ({ size = 18 }: IconProps) => <Ic size={size} d={["M4 7h16","M10 11v6","M14 11v6","M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12","M9 7V4h6v3"]} />,
   edit:      ({ size = 18 }: IconProps) => <Ic size={size} d={["M7 7H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-1","M20.385 6.585a2.1 2.1 0 0 0-2.97-2.97L9 12v3h3z","M16 5l3 3"]} />,
   trend:     ({ size = 18 }: IconProps) => <Ic size={size} d={["M3 17l6-6 4 4 8-8","M14 7h7v7"]} />,
+  mail:      ({ size = 18 }: IconProps) => <Ic size={size} d={["M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z","M3 7l9 6 9-6"]} />,
+  mappin:    ({ size = 18 }: IconProps) => <Ic size={size} d={["M12 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6","M17.657 16.657L13.414 20.9a2 2 0 0 1-2.827 0l-4.244-4.243a8 8 0 1 1 11.314 0"]} />,
 }

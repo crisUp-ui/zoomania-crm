@@ -8,7 +8,8 @@ export default function GlobalSearch() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<any[]>([])
   const [open, setOpen] = useState(false)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [mascotaId, setMascotaId] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -29,7 +30,15 @@ export default function GlobalSearch() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const select = (id: string) => { setSelectedId(id); setOpen(false); setQuery('') }
+  const openMascota = (mid: string) => {
+    setMascotaId(mid); setOpen(false); setQuery(''); setExpandedId(null)
+  }
+
+  const selectCliente = (r: any) => {
+    if (!r.mascotas?.length) return
+    if (r.mascotas.length === 1) { openMascota(r.mascotas[0].id); return }
+    setExpandedId(expandedId === r.id ? null : r.id)
+  }
 
   return (
     <>
@@ -54,19 +63,26 @@ export default function GlobalSearch() {
             {results.length === 0
               ? <div className="gs-empty">Sin resultados para "{query}"</div>
               : results.map(r => (
-                <div key={r.id} className="gs-item" onClick={() => select(r.id)}>
-                  <div className="gs-item-name">{r.nombre}</div>
-                  <div className="gs-item-meta">
-                    {r.telefono}
-                    {r.mascotas?.length ? ` · ${r.mascotas.map((m: any) => m.nombre).join(', ')}` : ''}
+                <div key={r.id}>
+                  <div className="gs-item" onClick={() => selectCliente(r)}>
+                    <div className="gs-item-name">{r.nombre}</div>
+                    <div className="gs-item-meta">
+                      {r.telefono}
+                      {r.mascotas?.length ? ` · ${r.mascotas.map((m: any) => m.nombre).join(', ')}` : ''}
+                    </div>
                   </div>
+                  {expandedId === r.id && r.mascotas?.map((m: any) => (
+                    <div key={m.id} className="gs-item" style={{ paddingLeft: 28, background: 'var(--zm-primary-bg)', fontSize: 13 }} onClick={() => openMascota(m.id)}>
+                      <Icons.paw size={12} /> {m.nombre}
+                    </div>
+                  ))}
                 </div>
               ))
             }
           </div>
         )}
       </div>
-      {selectedId && <HistoriaPanel clienteId={selectedId} onClose={() => setSelectedId(null)} />}
+      {mascotaId && <HistoriaPanel mascotaId={mascotaId} onClose={() => setMascotaId(null)} />}
     </>
   )
 }

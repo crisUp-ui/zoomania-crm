@@ -210,7 +210,7 @@ export default function Mascotas() {
       )}
 
       {deleteId && <ConfirmDialog onConfirm={confirmarDelete} onCancel={() => setDeleteId(null)} />}
-      {historiaId && <HistoriaPanel clienteId={historiaId} onClose={() => setHistoriaId(null)} />}
+      {historiaId && <HistoriaPanel mascotaId={historiaId} onClose={() => setHistoriaId(null)} />}
     </>
   )
 }

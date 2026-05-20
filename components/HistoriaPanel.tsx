@@ -184,7 +184,7 @@ export default function HistoriaPanel({ mascotaId, onClose }: Props) {
             {data.mascota.cliente && (
               <div className="hp-section">
                 <div className="hp-section-head" style={{ cursor: 'default' }}>
-                  <Icons.phone size={13} style={{ color: 'var(--zm-text-3)' }} />
+                  <Icons.phone size={13} />
                   <span style={{ marginLeft: 6 }}>Dueño: <b>{data.mascota.cliente.nombre}</b></span>
                   <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--zm-text-2)', fontVariantNumeric: 'tabular-nums' }}>{data.mascota.cliente.telefono}</span>
                 </div>

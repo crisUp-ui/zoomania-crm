@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { Icons } from './Icons'
 
 type Props = {
-  title: string
+  title: React.ReactNode
   subtitle?: string
   onClose: () => void
   children: React.ReactNode

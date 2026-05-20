@@ -125,6 +125,7 @@ export async function getCitas(fecha?: string) {
     servicioId: c.servicio_id,
     servicio: c.servicios?.nombre || '',
     duracion: c.tiempo_calculado_minutos || c.servicios?.tiempo_base_minutos || 0,
+    precio: parseFloat(c.servicios?.precio_base || '0'),
     estado: c.estado === 'en_proceso' ? 'en-proceso' : (c.estado || 'pendiente'),
     tiempoReal: c.hora_fin_real && c.hora_inicio ? minDiff(c.hora_inicio, c.hora_fin_real) : null,
   }))
@@ -159,7 +160,7 @@ export async function cancelarCita(id: string) {
 export async function getHistorial() {
   const { data } = await admin()
     .from('citas')
-    .select('*, clientes(nombre,apellido), mascotas(nombre,raza), servicios(nombre,tiempo_base_minutos)')
+    .select('*, clientes(nombre,apellido), mascotas(nombre,raza), servicios(nombre,tiempo_base_minutos,precio_base)')
     .eq('estado', 'completada')
     .order('fecha', { ascending: false })
     .limit(100)
@@ -175,6 +176,7 @@ export async function getHistorial() {
       estimado,
       real,
       diferencia: real - estimado,
+      precio: parseFloat(c.servicios?.precio_base || '0'),
     }
   })
 }

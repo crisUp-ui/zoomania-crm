@@ -10,37 +10,45 @@ export default function Dashboard() {
 
   const completadas = citas.filter(c => c.estado === 'completada').length
   const pendientes = citas.filter(c => ['pendiente', 'retrasada', 'en-proceso'].includes(c.estado)).length
-  const ingresos = completadas * 75 + 800
+  const ingresos = citas.filter(c => c.estado === 'completada').reduce((s, c: any) => s + (c.precio || 0), 0)
   const proximas = citas.filter(c => ['pendiente', 'en-proceso', 'retrasada'].includes(c.estado)).slice(0, 3)
 
   const chartRef = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     if (!chartRef.current) return
     let chart: any
+    const counts = Array(14).fill(0) // 9am-10pm
+    citas.forEach(c => {
+      const h = parseInt((c.hora || '').split(':')[0])
+      if (h >= 9 && h <= 22) counts[h - 9]++
+    })
     import('chart.js/auto').then(({ default: Chart }) => {
       if (!chartRef.current) return
       const ctx = chartRef.current.getContext('2d')!
-      const grad = ctx.createLinearGradient(0, 0, 0, 230)
-      grad.addColorStop(0, 'rgba(99,153,34,0.4)')
-      grad.addColorStop(1, 'rgba(99,153,34,0.02)')
       chart = new Chart(ctx, {
-        type: 'line',
+        type: 'bar',
         data: {
           labels: ['9am','10am','11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm','10pm'],
-          datasets: [{ label: 'Ocupación (%)', data: [85,95,100,90,60,80,100,75,95,80,60,45,30,15], borderColor: '#639922', backgroundColor: grad, fill: true, tension: 0.35, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 5 }],
+          datasets: [{
+            label: 'Citas',
+            data: counts,
+            backgroundColor: '#639922',
+            borderRadius: 6,
+            borderSkipped: false,
+          }],
         },
         options: {
           responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
             x: { grid: { display: false }, ticks: { color: '#8B948A', font: { size: 11 } } },
-            y: { grid: { color: '#EEF1EA' }, ticks: { color: '#8B948A', font: { size: 11 }, callback: (v: any) => v + '%' }, beginAtZero: true, max: 100 },
+            y: { grid: { color: '#EEF1EA' }, ticks: { color: '#8B948A', font: { size: 11 }, stepSize: 1 }, beginAtZero: true },
           },
         },
       })
     })
     return () => chart?.destroy()
-  }, [])
+  }, [citas])
 
   const todayStr = new Date().toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 
@@ -100,8 +108,8 @@ export default function Dashboard() {
       <div className="dash-grid">
         <div className="card card-pad">
           <div className="section-title">
-            <span>Ocupación por hora</span>
-            <span className="muted">9:00 – 22:00</span>
+            <span>Citas por hora</span>
+            <span className="muted">Hoy · 9:00 – 22:00</span>
           </div>
           <div className="chart-wrap"><canvas ref={chartRef} /></div>
         </div>

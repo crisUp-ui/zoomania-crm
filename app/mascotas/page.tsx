@@ -7,6 +7,24 @@ import { SidePanel } from '@/components/SidePanel'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Icons } from '@/components/Icons'
 import { useToast } from '@/components/Toast'
+import HistoriaPanel from '@/components/HistoriaPanel'
+
+const ESPECIE_COLOR: Record<string, [string, string]> = {
+  'Perro':   ['#E8F4D9','#3D6614'],
+  'Gato':    ['#FDEBD0','#784A15'],
+  'Conejo':  ['#FCEEF8','#7B2560'],
+  'Ave':     ['#FEF9E7','#7D6008'],
+  'Iguana':  ['#D5F5E3','#1A6B3D'],
+  'Reptil':  ['#E8DAEF','#5B2C8D'],
+  'Hámster': ['#FAE5D3','#7D3C10'],
+  'Hurón':   ['#DBEAFE','#1E40AF'],
+  'Pez':     ['#CCEEFF','#0066AA'],
+  'Otro':    ['#F2F3F4','#4D5656'],
+}
+const especieBadge = (esp: string) => {
+  const [bg, color] = ESPECIE_COLOR[esp] || ESPECIE_COLOR['Otro']
+  return { background: bg, color, borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }
+}
 
 const ESPECIES = ['Perro', 'Gato', 'Conejo', 'Ave', 'Iguana', 'Reptil', 'Hámster', 'Hurón', 'Pez', 'Otro']
 const TAMAÑOS = ['Pequeño', 'Mediano', 'Grande']
@@ -27,6 +45,7 @@ export default function Mascotas() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [form, setForm] = useState<any>(EMPTY)
   const [saving, setSaving] = useState(false)
+  const [historiaId, setHistoriaId] = useState<string | null>(null)
 
   const filtered = mascotas.filter(m => {
     const q = query.toLowerCase()
@@ -94,7 +113,7 @@ export default function Mascotas() {
             {loading && <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: 'var(--zm-text-3)' }}>Cargando…</td></tr>}
             {filtered.map(m => (
               <tr key={m.id} onClick={() => setSelected(m)}>
-                <td><b>{m.nombre}</b> <span className="badge badge-gray" style={{ marginLeft: 4 }}>{m.especie || 'Perro'}</span></td>
+                <td><b>{m.nombre}</b> <span style={{ marginLeft: 4, ...especieBadge(m.especie || 'Perro') }}>{m.especie || 'Perro'}</span></td>
                 <td>{m.dueño}</td>
                 <td style={{ color: 'var(--zm-text-2)' }}>{m.raza}</td>
                 <td><span className="badge badge-gray">{m.tamaño}</span></td>
@@ -109,7 +128,7 @@ export default function Mascotas() {
       </div>
 
       {selected && (
-        <SidePanel title={selected.nombre} subtitle={`${selected.raza} · ${selected.edad} años`} onClose={() => setSelected(null)}>
+        <SidePanel title={<>{selected.nombre} <span style={{ marginLeft: 6, ...especieBadge(selected.especie || 'Perro') }}>{selected.especie || 'Perro'}</span></>} subtitle={`${selected.raza} · ${selected.edad} años`} onClose={() => setSelected(null)}>
           <div className="sp-grid">
             <div><div className="sp-label">Dueño</div><div className="sp-value">{selected.dueño}</div></div>
             <div><div className="sp-label">Peso</div><div className="sp-value">{selected.peso} kg</div></div>
@@ -120,6 +139,9 @@ export default function Mascotas() {
             {selected.notas && <div style={{ gridColumn: '1/-1' }}><div className="sp-label">Notas</div><div className="sp-value">{selected.notas}</div></div>}
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+            <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => { setHistoriaId(selected.dueñoId); setSelected(null) }}><Icons.paw size={14} /> Historia clínica</button>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <button className="btn" style={{ flex: 1 }} onClick={() => openEdit(selected)}><Icons.edit size={14} /> Editar</button>
             <button className="btn" style={{ flex: 1, color: 'var(--zm-red)', borderColor: 'var(--zm-red-light)' }} onClick={() => setDeleteId(selected.id)}><Icons.trash size={14} /> Eliminar</button>
           </div>
@@ -173,6 +195,7 @@ export default function Mascotas() {
       )}
 
       {deleteId && <ConfirmDialog onConfirm={confirmarDelete} onCancel={() => setDeleteId(null)} />}
+      {historiaId && <HistoriaPanel clienteId={historiaId} onClose={() => setHistoriaId(null)} />}
     </>
   )
 }

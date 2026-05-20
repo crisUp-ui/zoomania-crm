@@ -1,15 +1,82 @@
 'use client'
+import { useState, useMemo } from 'react'
 import { useHistorial } from '@/lib/hooks'
+import { Icons } from '@/components/Icons'
 
 export default function Historial() {
   const { historial, loading } = useHistorial()
+  const [query, setQuery] = useState('')
+
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase()
+    if (!q) return historial
+    return historial.filter(h =>
+      h.cliente.toLowerCase().includes(q) ||
+      h.mascota.toLowerCase().includes(q) ||
+      h.servicio.toLowerCase().includes(q)
+    )
+  }, [historial, query])
+
+  const totalIngresos = filtered.reduce((s, h) => s + ((h as any).precio || 0), 0)
+  const avgReal = filtered.length ? Math.round(filtered.reduce((s, h) => s + h.real, 0) / filtered.length) : 0
+  const avgDiff = filtered.length ? Math.round(filtered.reduce((s, h) => s + h.diferencia, 0) / filtered.length) : 0
+
+  const svcCount: Record<string, number> = {}
+  filtered.forEach(h => { svcCount[h.servicio] = (svcCount[h.servicio] || 0) + 1 })
+  const topSvc = Object.entries(svcCount).sort((a, b) => b[1] - a[1])[0]?.[0] || '—'
 
   return (
     <>
       <div className="page-head">
         <div>
           <h1 className="page-title">Historial de servicios</h1>
-          <div className="page-sub">Comparación entre tiempos estimados y reales</div>
+          <div className="page-sub">{historial.length} servicios completados en total</div>
+        </div>
+        <div className="page-actions">
+          <div className="search">
+            <Icons.search />
+            <input
+              placeholder="Buscar cliente, mascota o servicio…"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="metric-grid">
+        <div className="card metric">
+          <div className="metric-head">
+            <div className="metric-label">Servicios completados</div>
+            <div className="metric-icon"><Icons.check size={20} /></div>
+          </div>
+          <div className="metric-value">{filtered.length}</div>
+          {query && <div className="metric-delta">{historial.length} en total</div>}
+        </div>
+        <div className="card metric">
+          <div className="metric-head">
+            <div className="metric-label">Ingresos totales</div>
+            <div className="metric-icon" style={{ background: '#D5F5E3', color: '#1A6B3D' }}><Icons.cash size={20} /></div>
+          </div>
+          <div className="metric-value">S/. {totalIngresos.toLocaleString('es-PE', { minimumFractionDigits: 0 })}</div>
+        </div>
+        <div className="card metric">
+          <div className="metric-head">
+            <div className="metric-label">Duración promedio</div>
+            <div className="metric-icon" style={{ background: '#DCEBF7', color: '#1F5C92' }}><Icons.clock size={20} /></div>
+          </div>
+          <div className="metric-value">{avgReal} min</div>
+          <div className="metric-delta" style={{ color: avgDiff > 5 ? 'var(--zm-red)' : 'var(--zm-primary-dark)' }}>
+            {avgDiff > 0 ? '+' : ''}{avgDiff} min vs estimado
+          </div>
+        </div>
+        <div className="card metric">
+          <div className="metric-head">
+            <div className="metric-label">Servicio más frecuente</div>
+            <div className="metric-icon"><Icons.paw size={20} /></div>
+          </div>
+          <div className="metric-value" style={{ fontSize: 15, marginTop: 10 }}>{topSvc}</div>
+          {svcCount[topSvc] && <div className="metric-delta">{svcCount[topSvc]} veces</div>}
         </div>
       </div>
 
@@ -21,20 +88,23 @@ export default function Historial() {
               <th style={{ textAlign: 'right' }}>Estimado</th>
               <th style={{ textAlign: 'right' }}>Real</th>
               <th style={{ textAlign: 'right' }}>Diferencia</th>
+              <th style={{ textAlign: 'right' }}>Precio</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--zm-text-3)' }}>Cargando…</td></tr>
+              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 40, color: 'var(--zm-text-3)' }}>Cargando…</td></tr>
             )}
-            {!loading && historial.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--zm-text-3)' }}>Sin registros</td></tr>
+            {!loading && filtered.length === 0 && (
+              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 40, color: 'var(--zm-text-3)' }}>
+                {query ? 'Sin resultados para esta búsqueda' : 'Sin registros — las citas completadas aparecerán aquí'}
+              </td></tr>
             )}
-            {historial.map(h => (
+            {filtered.map(h => (
               <tr key={h.id}>
                 <td style={{ color: 'var(--zm-text-2)' }}>{h.fecha}</td>
-                <td>{h.cliente}</td>
-                <td>{h.mascota}</td>
+                <td><b>{h.cliente}</b></td>
+                <td style={{ color: 'var(--zm-text-2)' }}>{h.mascota}</td>
                 <td>{h.servicio}</td>
                 <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{h.estimado} min</td>
                 <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{h.real} min</td>
@@ -42,6 +112,9 @@ export default function Historial() {
                   <span className={h.diferencia < 0 ? 'diff-pos' : h.diferencia > 0 ? 'diff-neg' : 'diff-zero'}>
                     {h.diferencia > 0 ? '+' : ''}{h.diferencia} min
                   </span>
+                </td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--zm-primary-dark)', fontWeight: 600 }}>
+                  S/. {((h as any).precio || 0).toFixed(2)}
                 </td>
               </tr>
             ))}
